@@ -1,0 +1,402 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Consistency & Focus Tracker - Master Your Daily Habits</title>
+    <meta name="description" content="A premium daily habit and focus study time tracker. Log tasks, record focus hours with a stopwatch, view monthly trends, and analyze your consistency streaks.">
+    
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
+    
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-background"></div>
+    
+    <div class="app-container">
+        <!-- HEADER -->
+        <header class="app-header">
+            <div class="header-logo">
+                <div class="logo-icon">
+                    <i data-lucide="zap"></i>
+                </div>
+                <div>
+                    <h1>Consistency Tracker</h1>
+                    <p class="header-subtitle">Stay focused, build habits, achieve goals</p>
+                </div>
+            </div>
+            
+            <div class="header-actions">
+                <button id="btn-open-friends" class="btn btn-secondary" title="Manage friends and shared activity">
+                    <i data-lucide="users"></i>
+                    <span>Friends</span>
+                </button>
+                <button id="btn-export" class="btn btn-secondary" title="Export data to JSON file">
+                    <i data-lucide="download"></i>
+                    <span>Export</span>
+                </button>
+                <button id="btn-import" class="btn btn-secondary" title="Import data from JSON file">
+                    <i data-lucide="upload"></i>
+                    <span>Import</span>
+                </button>
+                <div class="date-selector">
+                    <button id="btn-prev-day" class="btn btn-icon" title="Previous Day">
+                        <i data-lucide="chevron-left"></i>
+                    </button>
+                    <span id="display-date" class="current-date">Today, 21 Jun 2026</span>
+                    <button id="btn-next-day" class="btn btn-icon" title="Next Day">
+                        <i data-lucide="chevron-right"></i>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- MAIN LAYOUT GRID -->
+        <main class="app-grid">
+            
+            <!-- LEFT PANEL: Inputs & Tasks -->
+            <section class="left-panel">
+                <!-- SHARED ACCOUNT WIDGET -->
+                <div class="card profile-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="user-round" class="text-blue"></i>
+                            <h2>My Profile</h2>
+                        </div>
+                        <span id="sync-status" class="sync-status">Saved on this device</span>
+                    </div>
+                    <div class="profile-current-row">
+                        <div id="profile-avatar" class="profile-avatar">M</div>
+                        <div>
+                            <strong id="active-profile-name">My Tracker</strong>
+                            <p id="profile-friends-count">0 friends connected</p>
+                        </div>
+                    </div>
+                    <div class="profile-actions">
+                        <button id="btn-switch-profile" class="btn btn-secondary">Switch profile</button>
+                        <button id="btn-add-friend" class="btn btn-primary">Add friend</button>
+                    </div>
+                </div>
+                <!-- FOCUS TIMER WIDGET -->
+                <div class="card focus-timer-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="clock" class="text-violet"></i>
+                            <h2>Focus Timer</h2>
+                        </div>
+                        <span id="timer-mode-badge" class="badge badge-pulse">Idle</span>
+                    </div>
+                    
+                    <div class="timer-display-container">
+                        <div id="timer-clock" class="timer-clock">00:00:00</div>
+                        <p class="timer-subtext">Log focused study or task work sessions</p>
+                    </div>
+                    
+                    <div class="timer-controls">
+                        <button id="btn-timer-toggle" class="btn btn-primary btn-grow" title="Start Focus Session">
+                            <i data-lucide="play" id="icon-timer-toggle"></i>
+                            <span id="text-timer-toggle">Start Focus</span>
+                        </button>
+                        <button id="btn-timer-reset" class="btn btn-danger" title="Reset Timer">
+                            <i data-lucide="rotate-ccw"></i>
+                        </button>
+                    </div>
+                    
+                    <div class="timer-manual">
+                        <span class="divider-text">or manual log</span>
+                        <div class="manual-input-group">
+                            <input type="number" id="input-manual-hours" step="0.1" min="0" max="24" placeholder="Hours (e.g. 1.5)">
+                            <button id="btn-save-manual-hours" class="btn btn-accent" title="Save hours to current day">
+                                Add Hours
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- DAILY PLANNER WIDGET -->
+                <div class="card planner-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="check-square" class="text-emerald"></i>
+                            <h2>Daily Planner</h2>
+                        </div>
+                        <span id="task-count-badge" class="badge">0 tasks</span>
+                    </div>
+                    
+                    <form id="form-add-task" class="task-input-form">
+                        <input type="text" id="input-task-title" placeholder="What do you want to accomplish today?" required autocomplete="off">
+                        <button type="submit" class="btn btn-primary btn-icon-only" title="Add Task">
+                            <i data-lucide="plus"></i>
+                        </button>
+                    </form>
+                    
+                    <div class="task-list-wrapper">
+                        <ul id="task-list" class="task-list">
+                            <!-- Tasks populated dynamically by JS -->
+                            <li class="empty-state">
+                                <i data-lucide="clipboard-list"></i>
+                                <p>No tasks added for this day yet. Plan your day above!</p>
+                            </li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+
+            <!-- RIGHT PANEL: Analytics & Heatmap -->
+            <section class="right-panel">
+                <!-- FRIENDS ACTIVITY -->
+                <section class="card friends-activity-card" aria-labelledby="friends-activity-title">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="radio" class="text-pink"></i>
+                            <h2 id="friends-activity-title">Friends' Activity</h2>
+                        </div>
+                        <button id="btn-refresh-friends" class="btn btn-icon" title="Refresh activity"><i data-lucide="refresh-cw"></i></button>
+                    </div>
+                    <div id="friends-activity-list" class="friends-activity-list"></div>
+                </section>
+                <!-- STATS GRID -->
+                <div class="stats-overview-grid">
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper text-emerald">
+                            <i data-lucide="award"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Current Streak</span>
+                            <span id="stat-current-streak" class="stat-value">0 days</span>
+                        </div>
+                    </div>
+                    
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper text-orange">
+                            <i data-lucide="flame"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Best Streak</span>
+                            <span id="stat-best-streak" class="stat-value">0 days</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper text-blue">
+                            <i data-lucide="book-open"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Total Focused Hours</span>
+                            <span id="stat-total-hours" class="stat-value">0.0 hrs</span>
+                        </div>
+                    </div>
+
+                    <div class="stat-card">
+                        <div class="stat-icon-wrapper text-pink">
+                            <i data-lucide="line-chart"></i>
+                        </div>
+                        <div class="stat-info">
+                            <span class="stat-label">Completion Rate</span>
+                            <span id="stat-completion-rate" class="stat-value">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- WEEKLY STUDY SNAPSHOT -->
+                <section class="card weekly-study-card" aria-labelledby="weekly-study-title">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="calendar-days" class="text-emerald"></i>
+                            <h2 id="weekly-study-title">This Week's Study</h2>
+                        </div>
+                        <span id="weekly-study-range" class="weekly-study-range">—</span>
+                    </div>
+                    <div class="weekly-study-summary">
+                        <div>
+                            <span id="stat-weekly-hours" class="weekly-study-total">0.0 hrs</span>
+                            <p class="weekly-study-caption">focused this week</p>
+                        </div>
+                        <div class="weekly-study-hint">
+                            <i data-lucide="sparkles"></i>
+                            <span>Every focused session counts.</span>
+                        </div>
+                    </div>
+                    <div id="weekly-study-days" class="weekly-study-days" aria-label="Daily focused hours for this week"></div>
+                </section>
+
+                <!-- HEATMAP CALENDAR -->
+                <div class="card heatmap-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="calendar-range" class="text-indigo"></i>
+                            <h2>Consistency Heatmap</h2>
+                        </div>
+                        <div class="heatmap-legend">
+                            <span>Less</span>
+                            <span class="legend-cell lvl-0"></span>
+                            <span class="legend-cell lvl-1"></span>
+                            <span class="legend-cell lvl-2"></span>
+                            <span class="legend-cell lvl-3"></span>
+                            <span class="legend-cell lvl-4"></span>
+                            <span>More</span>
+                        </div>
+                    </div>
+                    <div class="heatmap-container-wrapper">
+                        <!-- Heatmap generated dynamically by JS -->
+                        <div id="heatmap-grid" class="heatmap-grid"></div>
+                    </div>
+                    <div class="heatmap-footer">
+                        <p>Showing the rolling 24 weeks of consistency. Hover over boxes to see details.</p>
+                    </div>
+                </div>
+
+                <!-- MONTHLY GRAPH -->
+                <div class="card graph-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="trending-up" class="text-violet"></i>
+                            <h2>Focus Hours Trend</h2>
+                        </div>
+                        <div class="graph-filters">
+                            <select id="select-graph-month" class="form-select">
+                                <!-- Populated dynamically by JS -->
+                            </select>
+                        </div>
+                    </div>
+                    <div class="chart-container">
+                        <canvas id="focusHoursChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- REASON INSIGHTS LOG -->
+                <div class="card reasons-card">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="help-circle" class="text-amber"></i>
+                            <h2>Inconsistency Insights</h2>
+                        </div>
+                    </div>
+                    <div class="reasons-content">
+                        <ul id="reason-list" class="reason-list">
+                            <!-- Populated dynamically by JS -->
+                            <li class="empty-state-text">No missed tasks recorded yet. Keep up the high consistency!</li>
+                        </ul>
+                    </div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- MODAL: FRIENDS & PROFILES -->
+    <div id="modal-friends" class="modal-overlay">
+        <div class="modal-box modal-box-large">
+            <div class="modal-header">
+                <h2>Friends & Profiles</h2>
+                <button id="btn-close-friends-modal" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="social-section">
+                    <div class="social-section-heading"><h3>Your profile</h3><p>Switch profiles on this device, or make a new one.</p></div>
+                    <div id="profile-picker" class="profile-picker"></div>
+                    <form id="form-create-profile" class="social-form">
+                        <input id="input-profile-name" type="text" maxlength="40" placeholder="Create a profile (e.g. Alex)" required>
+                        <button class="btn btn-secondary" type="submit">Create profile</button>
+                    </form>
+                </div>
+                <div class="social-section">
+                    <div class="social-section-heading"><h3>Add a friend</h3><p>Enter the exact profile name your friend created.</p></div>
+                    <form id="form-add-friend" class="social-form">
+                        <input id="input-friend-name" type="text" maxlength="40" placeholder="Friend's profile name" required>
+                        <button class="btn btn-primary" type="submit">Connect</button>
+                    </form>
+                    <p id="social-message" class="social-message" role="status"></p>
+                    <div id="friends-list" class="friends-list"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: REASON FOR INCOMPLETE TASK -->
+    <div id="modal-reason" class="modal-overlay">
+        <div class="modal-box">
+            <div class="modal-header">
+                <h2>Reason for Not Completing</h2>
+                <button id="btn-close-reason-modal" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <p class="modal-desc">Reflecting on why a task wasn't finished helps identify friction and improve habits. Why wasn't this task completed today?</p>
+                <div class="preset-reasons">
+                    <button class="btn-preset-reason" data-reason="Lack of time / Overcommitted">Lack of time / Overcommitted</button>
+                    <button class="btn-preset-reason" data-reason="Procrastination / Low motivation">Procrastination / Low motivation</button>
+                    <button class="btn-preset-reason" data-reason="Fatigue / Felt tired">Fatigue / Felt tired</button>
+                    <button class="btn-preset-reason" data-reason="Distractions (Phone, Social Media)">Distractions</button>
+                    <button class="btn-preset-reason" data-reason="Unexpected interruptions / Emergency">Unexpected interruptions</button>
+                    <button class="btn-preset-reason" data-reason="Task was too difficult / Blocked">Task was too difficult</button>
+                </div>
+                <div class="custom-reason-group">
+                    <label for="input-custom-reason">Or write a custom reason:</label>
+                    <textarea id="input-custom-reason" rows="3" placeholder="Enter your reason here..."></textarea>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-cancel-reason" class="btn btn-secondary">Cancel</button>
+                <button id="btn-submit-reason" class="btn btn-accent">Save Reason</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL: IMPORT / EXPORT -->
+    <div id="modal-backup" class="modal-overlay">
+        <div class="modal-box modal-box-large">
+            <div class="modal-header">
+                <h2 id="backup-modal-title">Backup & Restore</h2>
+                <button id="btn-close-backup-modal" class="modal-close-btn">&times;</button>
+            </div>
+            <div class="modal-body">
+                <!-- EXPORT VIEW -->
+                <div id="backup-export-view" class="backup-section">
+                    <p class="modal-desc">Copy this data or download it as a JSON file to backup your consistency tracking progress.</p>
+                    <textarea id="textarea-export-data" readonly rows="8" class="data-textarea"></textarea>
+                    <div class="backup-actions">
+                        <button id="btn-copy-backup" class="btn btn-secondary">
+                            <i data-lucide="copy"></i> Copy to Clipboard
+                        </button>
+                        <a id="link-download-backup" href="#" class="btn btn-primary" download="consistency_tracker_backup.json">
+                            <i data-lucide="download"></i> Download File
+                        </a>
+                    </div>
+                </div>
+
+                <!-- IMPORT VIEW -->
+                <div id="backup-import-view" class="backup-section">
+                    <p class="modal-desc">Paste your backup JSON below or upload a JSON file to restore your stats. <br><strong class="text-orange">Warning:</strong> This will overwrite your current tracking data!</p>
+                    
+                    <div class="file-upload-wrapper">
+                        <label for="input-import-file" class="file-upload-label">
+                            <i data-lucide="file-plus"></i> Select Backup JSON File
+                        </label>
+                        <input type="file" id="input-import-file" accept=".json">
+                        <span id="import-file-name" class="file-name-display">No file chosen</span>
+                    </div>
+                    
+                    <textarea id="textarea-import-data" rows="8" placeholder='Paste JSON data here (e.g. {"days": {...}})' class="data-textarea"></textarea>
+                    <div id="import-error-msg" class="error-msg"></div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button id="btn-close-backup" class="btn btn-secondary">Close</button>
+                <button id="btn-confirm-import" class="btn btn-accent hidden">Confirm Import</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Script Application -->
+    <script src="app.js"></script>
+</body>
+</html>
