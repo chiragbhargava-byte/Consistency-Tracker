@@ -10,10 +10,8 @@ module.exports = async function handler(request, response) {
   }
 
   try {
-    const chunks = [];
-    for await (const chunk of request) chunks.push(chunk);
-    const body = Buffer.concat(chunks).toString() || '{}';
-    const { profileId, friendName } = JSON.parse(body);
+    const body = typeof request.body === 'string' ? JSON.parse(request.body) : (request.body || {});
+    const { profileId, friendName } = body;
     const database = readDatabase();
     const profile = database.profiles.find(item => item.id === String(profileId));
     const friend = database.profiles.find(item => item.name.toLowerCase() === String(friendName || '').trim().toLowerCase());
