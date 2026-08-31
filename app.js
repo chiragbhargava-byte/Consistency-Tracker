@@ -18,6 +18,19 @@ let allProfiles = [];
 let syncTimer = null;
 let sharedServerAvailable = false;
 
+const DAILY_QUOTES = [
+    { text: "Discipline is choosing between what you want most and what you want now.", author: "Abraham Lincoln" },
+    { text: "Consistency turns effort into identity.", author: "Unknown" },
+    { text: "Small daily improvements are the key to staggering results.", author: "Robin Sharma" },
+    { text: "Success is the sum of small efforts, repeated day in and day out.", author: "Robert Collier" },
+    { text: "The future depends on what you do today.", author: "Mahatma Gandhi" },
+    { text: "Your focus determines your future.", author: "Unknown" },
+    { text: "You do not rise to the level of your goals. You fall to the level of your systems.", author: "James Clear" },
+    { text: "Progress, not perfection, is the goal.", author: "Unknown" },
+    { text: "The secret of getting ahead is getting started.", author: "Mark Twain" },
+    { text: "Study now, succeed later. The work pays off.", author: "Unknown" }
+];
+
 // Preset Reasons List
 const PRESET_REASONS = [
     "Lack of time / Overcommitted",
@@ -29,16 +42,17 @@ const PRESET_REASONS = [
 ];
 
 // --- INITIALIZATION ---
-document.addEventListener("DOMContentLoaded", () => {
-    loadFromLocalStorage();
+document.addEventListener("DOMContentLoaded", async () => {
+    await loadFromLocalStorage();
     initializeEventListeners();
+    renderDailyQuote();
     selectDate(new Date()); // default to today
     setupMonthFilterDropdown();
     updateDashboardStats();
     renderHeatmap();
     initTimerFromState();
     initializeSocial();
-    
+
     // Initial icon render
     lucide.createIcons();
 });
@@ -46,14 +60,9 @@ document.addEventListener("DOMContentLoaded", () => {
 // --- LOCAL STORAGE HANDLING ---
 function saveToLocalStorage() {
     localStorage.setItem("consistency_tracker_state", JSON.stringify(trackerState));
-    if (activeProfile) {
-        activeProfile.trackerState = trackerState;
-        localStorage.setItem("consistency_tracker_social", JSON.stringify({ profileId: activeProfile.id }));
-        queueProfileSync();
-    }
 }
 
-function loadFromLocalStorage() {
+async function loadFromLocalStorage() {
     const saved = localStorage.getItem("consistency_tracker_state");
     if (saved) {
         try {
@@ -64,9 +73,32 @@ function loadFromLocalStorage() {
             if (!trackerState.timer) {
                 trackerState.timer = { startTime: null, accumulatedTime: 0, isRunning: false };
             }
+            return;
         } catch (e) {
             console.error("Error parsing localStorage data:", e);
         }
+    }
+
+    try {
+        const response = await fetch("./shared-data.json");
+        if (!response.ok) return;
+        const data = await response.json();
+        const profiles = Array.isArray(data.profiles) ? data.profiles : [];
+        if (!profiles.length) return;
+
+        const latestProfile = profiles
+            .filter(profile => profile && profile.trackerState)
+            .sort((a, b) => new Date(b.updatedAt || 0) - new Date(a.updatedAt || 0))[0];
+
+        if (!latestProfile) return;
+
+        trackerState = latestProfile.trackerState || { days: {}, timer: { startTime: null, accumulatedTime: 0, isRunning: false } };
+        if (!trackerState.days) trackerState.days = {};
+        if (!trackerState.timer) trackerState.timer = { startTime: null, accumulatedTime: 0, isRunning: false };
+
+        localStorage.setItem("consistency_tracker_state", JSON.stringify(trackerState));
+    } catch (error) {
+        console.info("No saved tracker backup was available to import automatically.", error);
     }
 }
 
@@ -86,35 +118,11 @@ async function api(path, options = {}) {
 }
 
 async function initializeSocial() {
-    const stored = JSON.parse(localStorage.getItem("consistency_tracker_social") || "{}");
-    try {
-        const data = await api("/api/profiles");
-        sharedServerAvailable = true;
-        allProfiles = data.profiles;
-        activeProfile = allProfiles.find(profile => profile.id === stored.profileId);
-        if (!activeProfile) {
-            const legacyState = trackerState;
-            const id = profileId();
-            const created = await api("/api/profiles", {
-                method: "POST",
-                body: JSON.stringify({ id, name: `My Tracker ${id.slice(-4)}`, friends: [], trackerState: legacyState })
-            });
-            activeProfile = created.profile;
-            allProfiles.push(activeProfile);
-        }
-        trackerState = activeProfile.trackerState || { days: {}, timer: { startTime: null, accumulatedTime: 0, isRunning: false } };
-        if (!trackerState.days) trackerState.days = {};
-        if (!trackerState.timer) trackerState.timer = { startTime: null, accumulatedTime: 0, isRunning: false };
-        localStorage.setItem("consistency_tracker_social", JSON.stringify({ profileId: activeProfile.id }));
-        refreshAllForProfile();
-        document.getElementById("sync-status").textContent = "Shared & up to date";
-    } catch (error) {
-        activeProfile = { id: "local", name: "My Tracker", friends: [], trackerState };
-        allProfiles = [activeProfile];
-        renderSocial();
-        document.getElementById("sync-status").textContent = "Saved on this device";
-        console.info("Shared profiles are available when opened through server.js.", error);
-    }
+    activeProfile = { id: "local", name: "My Tracker", friends: [], trackerState };
+    allProfiles = [activeProfile];
+    const syncStatusEl = document.getElementById("sync-status");
+    if (syncStatusEl) syncStatusEl.textContent = "Saved on this device";
+    renderSocial();
 }
 
 function queueProfileSync() {
@@ -148,22 +156,28 @@ function activitySummary(profile) {
 
 function renderSocial() {
     if (!activeProfile) return;
-    document.getElementById("active-profile-name").textContent = activeProfile.name;
-    document.getElementById("profile-avatar").textContent = activeProfile.name.charAt(0).toUpperCase();
-    const friends = allProfiles.filter(profile => (activeProfile.friends || []).includes(profile.id));
-    document.getElementById("profile-friends-count").textContent = `${friends.length} friend${friends.length === 1 ? "" : "s"} connected`;
-    const activity = document.getElementById("friends-activity-list");
-    activity.innerHTML = friends.length ? friends.map(friend => {
-        const stats = activitySummary(friend);
-        const state = stats.hours > 0 || stats.completed > 0 ? `Active today · ${stats.hours.toFixed(1)}h · ${stats.completed}/${stats.total} tasks` : `Last active: ${stats.lastActive || "not yet"}`;
-        return `<div class="friend-activity"><span class="friend-avatar">${escapeHTML(friend.name.charAt(0).toUpperCase())}</span><div><strong>${escapeHTML(friend.name)}</strong><p>${state}</p></div><span class="activity-dot ${stats.hours > 0 || stats.completed > 0 ? "active" : ""}"></span></div>`;
-    }).join("") : `<div class="social-empty"><i data-lucide="user-plus"></i><p>Add friends to see their daily focus and completed tasks here.</p></div>`;
-    const picker = document.getElementById("profile-picker");
-    picker.innerHTML = allProfiles.map(profile => `<button class="profile-choice ${profile.id === activeProfile.id ? "selected" : ""}" data-profile-id="${profile.id}">${escapeHTML(profile.name)}${profile.id === activeProfile.id ? " <span>Current</span>" : ""}</button>`).join("");
-    picker.querySelectorAll("[data-profile-id]").forEach(button => button.addEventListener("click", () => switchProfile(button.dataset.profileId)));
-    const friendsList = document.getElementById("friends-list");
-    friendsList.innerHTML = friends.length ? `<h3>Connected friends</h3>${friends.map(friend => `<div class="friend-list-item"><span class="friend-avatar">${escapeHTML(friend.name.charAt(0).toUpperCase())}</span><span>${escapeHTML(friend.name)}</span></div>`).join("")}` : "";
-    lucide.createIcons();
+}
+
+function getDailyQuoteIndex() {
+    const today = new Date();
+    const dateKey = formatDateLocal(today);
+    const seed = dateKey.split('-').join('');
+    const numericSeed = Number(seed) || 0;
+    return numericSeed % DAILY_QUOTES.length;
+}
+
+function renderDailyQuote() {
+    const quoteElement = document.getElementById("daily-quote-text");
+    const authorElement = document.getElementById("daily-quote-author");
+    const dayLabelElement = document.getElementById("quote-day-label");
+
+    if (!quoteElement || !authorElement || !dayLabelElement) return;
+
+    const index = getDailyQuoteIndex();
+    const quote = DAILY_QUOTES[index];
+    quoteElement.textContent = `“${quote.text}”`;
+    authorElement.textContent = `— ${quote.author}`;
+    dayLabelElement.textContent = new Date().toLocaleDateString("en-US", { month: "short", day: "numeric" });
 }
 
 function refreshAllForProfile() {
@@ -176,31 +190,23 @@ function refreshAllForProfile() {
 }
 
 async function refreshFriends() {
-    if (!sharedServerAvailable) return;
-    try {
-        const data = await api("/api/profiles");
-        allProfiles = data.profiles;
-        activeProfile = allProfiles.find(profile => profile.id === activeProfile.id) || activeProfile;
-        renderSocial();
-    } catch (_) { /* keep the last displayed activity */ }
+    renderSocial();
 }
 
 function switchProfile(id) {
-    const profile = allProfiles.find(item => item.id === id);
+    if (!allProfiles.length) return;
+    const profile = allProfiles.find(item => item.id === id) || allProfiles[0];
     if (!profile || profile.id === activeProfile.id) return;
     activeProfile = profile;
     trackerState = activeProfile.trackerState || { days: {}, timer: { startTime: null, accumulatedTime: 0, isRunning: false } };
-    localStorage.setItem("consistency_tracker_social", JSON.stringify({ profileId: activeProfile.id }));
     refreshAllForProfile();
-    document.getElementById("social-message").textContent = `Now tracking as ${activeProfile.name}.`;
 }
 
 async function createProfile(name) {
-    const profile = { id: profileId(), name: name.trim(), friends: [], trackerState: { days: {}, timer: { startTime: null, accumulatedTime: 0, isRunning: false } } };
-    if (sharedServerAvailable) {
-        const result = await api("/api/profiles", { method: "POST", body: JSON.stringify(profile) });
-        allProfiles.push(result.profile);
-    } else allProfiles.push(profile);
+    const safeName = String(name || "").trim();
+    if (!safeName) return;
+    const profile = { id: profileId(), name: safeName, friends: [], trackerState: { days: {}, timer: { startTime: null, accumulatedTime: 0, isRunning: false } } };
+    allProfiles.push(profile);
     switchProfile(profile.id);
 }
 
@@ -631,8 +637,11 @@ function updateDashboardStats() {
 
     // 4. Current week's focus-hours snapshot (Monday through Sunday).
     renderWeeklyStudyProgress();
+
+    // 5. Previous week's focus-hours snapshot.
+    renderLastWeekStudyProgress();
     
-    // 5. Reason insights list
+    // 6. Reason insights list
     renderReasonInsights();
 }
 
@@ -671,6 +680,36 @@ function renderWeeklyStudyProgress() {
                 <span class="weekly-day-label">${dayNames[date.getDay()]}</span>
             </div>`;
     }).join("");
+}
+
+function renderLastWeekStudyProgress() {
+    const now = new Date();
+    now.setHours(0, 0, 0, 0);
+
+    const currentWeekMonday = new Date(now);
+    const daysSinceMonday = (currentWeekMonday.getDay() + 6) % 7;
+    currentWeekMonday.setDate(currentWeekMonday.getDate() - daysSinceMonday);
+
+    const lastWeekMonday = new Date(currentWeekMonday);
+    lastWeekMonday.setDate(currentWeekMonday.getDate() - 7);
+
+    const lastWeekSunday = new Date(lastWeekMonday);
+    lastWeekSunday.setDate(lastWeekMonday.getDate() + 6);
+
+    const lastWeekDays = Array.from({ length: 7 }, (_, index) => {
+        const date = new Date(lastWeekMonday);
+        date.setDate(lastWeekMonday.getDate() + index);
+        const dateStr = formatDateLocal(date);
+        const hours = Number(trackerState.days[dateStr]?.focusedHours) || 0;
+        return { date, hours };
+    });
+
+    const lastWeekHours = lastWeekDays.reduce((sum, day) => sum + day.hours, 0);
+    const rangeOptions = { month: "short", day: "numeric" };
+
+    document.getElementById("stat-last-week-hours").textContent = `${lastWeekHours.toFixed(1)} hrs`;
+    document.getElementById("last-week-study-range").textContent =
+        `${lastWeekMonday.toLocaleDateString("en-US", rangeOptions)} – ${lastWeekSunday.toLocaleDateString("en-US", rangeOptions)}`;
 }
 
 function calculateStreaks() {
@@ -1102,39 +1141,6 @@ function handleJSONImport() {
 
 // --- EVENT LISTENERS REGISTRATION ---
 function initializeEventListeners() {
-    // Shared profiles & friends
-    document.getElementById("btn-open-friends").addEventListener("click", () => {
-        document.getElementById("modal-friends").classList.add("active");
-        refreshFriends();
-    });
-    document.getElementById("btn-add-friend").addEventListener("click", () => document.getElementById("modal-friends").classList.add("active"));
-    document.getElementById("btn-switch-profile").addEventListener("click", () => document.getElementById("modal-friends").classList.add("active"));
-    document.getElementById("btn-close-friends-modal").addEventListener("click", () => document.getElementById("modal-friends").classList.remove("active"));
-    document.getElementById("btn-refresh-friends").addEventListener("click", refreshFriends);
-    document.getElementById("form-create-profile").addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const input = document.getElementById("input-profile-name");
-        const message = document.getElementById("social-message");
-        try {
-            await createProfile(input.value);
-            input.value = "";
-            message.textContent = "Profile created. You can now share this name with friends.";
-        } catch (error) { message.textContent = error.message; }
-    });
-    document.getElementById("form-add-friend").addEventListener("submit", async (event) => {
-        event.preventDefault();
-        const input = document.getElementById("input-friend-name");
-        const message = document.getElementById("social-message");
-        try {
-            if (!sharedServerAvailable) throw new Error("Start the tracker with server.js to connect friends.");
-            const result = await api("/api/connect", { method: "POST", body: JSON.stringify({ profileId: activeProfile.id, friendName: input.value }) });
-            activeProfile = result.profile;
-            await refreshFriends();
-            input.value = "";
-            message.textContent = `${result.friend.name} is now connected — you can both see each other's activity.`;
-        } catch (error) { message.textContent = error.message; }
-    });
-
     // 1. Task Form Submission
     document.getElementById("form-add-task").addEventListener("submit", (e) => {
         e.preventDefault();

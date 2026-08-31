@@ -197,13 +197,31 @@ body {
 }
 
 /* Shared profiles & friends */
-.profile-card { padding: 1.4rem; }
-.sync-status { color: hsl(var(--color-emerald)); font-size: 0.72rem; font-weight: 700; }
-.profile-current-row, .friend-activity, .friend-list-item { display: flex; align-items: center; gap: 0.8rem; }
-.profile-current-row strong { display: block; font-size: 1rem; }
-.profile-current-row p, .friend-activity p { color: hsl(var(--text-secondary)); font-size: 0.8rem; margin-top: 0.15rem; }
-.profile-avatar, .friend-avatar { display: inline-flex; flex: 0 0 auto; align-items: center; justify-content: center; width: 38px; height: 38px; border-radius: 50%; background: hsl(var(--color-primary-glow)); border: 1px solid hsl(var(--color-primary) / 0.35); color: #fff; font-weight: 700; }
-.profile-avatar { width: 46px; height: 46px; font-size: 1.1rem; }
+.quote-card {
+    padding: 1.4rem;
+    background: linear-gradient(135deg, rgba(255, 192, 72, 0.08), rgba(87, 120, 255, 0.06));
+}
+.quote-day-label {
+    color: hsl(var(--color-amber));
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+.quote-text {
+    margin: 0;
+    color: hsl(var(--text-primary));
+    font-size: 1.05rem;
+    line-height: 1.6;
+    font-weight: 600;
+    font-style: italic;
+}
+.quote-author {
+    margin-top: 0.8rem;
+    color: hsl(var(--text-secondary));
+    font-size: 0.8rem;
+    font-weight: 600;
+}
 .profile-actions, .social-form { display: flex; gap: 0.6rem; margin-top: 1.1rem; }
 .profile-actions .btn { flex: 1; padding-inline: 0.75rem; }
 .friends-activity-card { padding-bottom: 1rem; }
@@ -717,6 +735,10 @@ body {
     padding-bottom: 1rem;
 }
 
+.last-week-study-card {
+    margin-top: 1rem;
+}
+
 .weekly-study-range {
     color: hsl(var(--text-muted));
     font-size: 0.8rem;
@@ -827,9 +849,25 @@ body {
 .text-pink { color: hsl(328, 100%, 70%); } /* completion rate color */
 
 /* Heatmap Calendar */
+.heatmap-layout {
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+}
+
+.heatmap-weekdays {
+    display: grid;
+    grid-template-rows: repeat(7, 12px);
+    gap: 4px;
+    padding-top: 0.5rem;
+    font-size: 0.68rem;
+    color: hsl(var(--text-muted));
+    line-height: 1;
+}
+
 .heatmap-container-wrapper {
     overflow-x: auto;
-    padding-bottom: 0.5rem;
+    padding-bottom: 0.25rem;
 }
 
 /* Custom Scrollbar for Heatmap & lists */
@@ -861,26 +899,32 @@ body {
 
 .heatmap-grid {
     display: grid;
-    grid-template-rows: repeat(7, 10px);
+    grid-template-rows: repeat(7, 12px);
     grid-auto-flow: column;
-    grid-auto-columns: 10px;
-    gap: 3px;
+    grid-auto-columns: 12px;
+    gap: 4px;
     padding: 0.5rem 0;
+    width: max-content;
+    justify-content: start;
+    align-content: start;
 }
 
 .heatmap-cell {
-    width: 10px;
-    height: 10px;
-    border-radius: 2px;
+    width: 12px;
+    height: 12px;
+    border-radius: 3px;
     background-color: rgba(255, 255, 255, 0.04);
     position: relative;
-    transition: transform var(--transition-fast), filter var(--transition-fast);
+    cursor: pointer;
+    border: 1px solid rgba(255, 255, 255, 0.02);
+    transition: transform var(--transition-fast), filter var(--transition-fast), box-shadow var(--transition-fast);
 }
 
 .heatmap-cell:hover {
-    transform: scale(1.3);
-    filter: brightness(1.2);
+    transform: translateY(-1px) scale(1.15);
+    filter: brightness(1.12);
     z-index: 10;
+    box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08);
 }
 
 .heatmap-cell.lvl-0 { background-color: rgba(255, 255, 255, 0.04); }

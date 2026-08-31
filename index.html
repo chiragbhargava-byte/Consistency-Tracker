@@ -37,10 +37,6 @@
             </div>
             
             <div class="header-actions">
-                <button id="btn-open-friends" class="btn btn-secondary" title="Manage friends and shared activity">
-                    <i data-lucide="users"></i>
-                    <span>Friends</span>
-                </button>
                 <button id="btn-export" class="btn btn-secondary" title="Export data to JSON file">
                     <i data-lucide="download"></i>
                     <span>Export</span>
@@ -66,26 +62,19 @@
             
             <!-- LEFT PANEL: Inputs & Tasks -->
             <section class="left-panel">
-                <!-- SHARED ACCOUNT WIDGET -->
-                <div class="card profile-card">
+                <!-- DAILY QUOTE WIDGET -->
+                <div class="card quote-card">
                     <div class="card-header">
                         <div class="card-title">
-                            <i data-lucide="user-round" class="text-blue"></i>
-                            <h2>My Profile</h2>
+                            <i data-lucide="quote" class="text-amber"></i>
+                            <h2>Daily Quote</h2>
                         </div>
-                        <span id="sync-status" class="sync-status">Saved on this device</span>
+                        <span id="quote-day-label" class="quote-day-label">Today</span>
                     </div>
-                    <div class="profile-current-row">
-                        <div id="profile-avatar" class="profile-avatar">M</div>
-                        <div>
-                            <strong id="active-profile-name">My Tracker</strong>
-                            <p id="profile-friends-count">0 friends connected</p>
-                        </div>
-                    </div>
-                    <div class="profile-actions">
-                        <button id="btn-switch-profile" class="btn btn-secondary">Switch profile</button>
-                        <button id="btn-add-friend" class="btn btn-primary">Add friend</button>
-                    </div>
+                    <blockquote id="daily-quote-text" class="quote-text">
+                        “Discipline is choosing between what you want most and what you want now.”
+                    </blockquote>
+                    <p id="daily-quote-author" class="quote-author">— Abraham Lincoln</p>
                 </div>
                 <!-- FOCUS TIMER WIDGET -->
                 <div class="card focus-timer-card">
@@ -154,17 +143,6 @@
 
             <!-- RIGHT PANEL: Analytics & Heatmap -->
             <section class="right-panel">
-                <!-- FRIENDS ACTIVITY -->
-                <section class="card friends-activity-card" aria-labelledby="friends-activity-title">
-                    <div class="card-header">
-                        <div class="card-title">
-                            <i data-lucide="radio" class="text-pink"></i>
-                            <h2 id="friends-activity-title">Friends' Activity</h2>
-                        </div>
-                        <button id="btn-refresh-friends" class="btn btn-icon" title="Refresh activity"><i data-lucide="refresh-cw"></i></button>
-                    </div>
-                    <div id="friends-activity-list" class="friends-activity-list"></div>
-                </section>
                 <!-- STATS GRID -->
                 <div class="stats-overview-grid">
                     <div class="stat-card">
@@ -230,6 +208,26 @@
                     <div id="weekly-study-days" class="weekly-study-days" aria-label="Daily focused hours for this week"></div>
                 </section>
 
+                <section class="card weekly-study-card last-week-study-card" aria-labelledby="last-week-study-title">
+                    <div class="card-header">
+                        <div class="card-title">
+                            <i data-lucide="clock-3" class="text-blue"></i>
+                            <h2 id="last-week-study-title">Last Week Studied</h2>
+                        </div>
+                        <span id="last-week-study-range" class="weekly-study-range">—</span>
+                    </div>
+                    <div class="weekly-study-summary">
+                        <div>
+                            <span id="stat-last-week-hours" class="weekly-study-total">0.0 hrs</span>
+                            <p id="last-week-study-caption" class="weekly-study-caption">focused last week</p>
+                        </div>
+                        <div class="weekly-study-hint">
+                            <i data-lucide="timer-reset"></i>
+                            <span>Previous 7-day total.</span>
+                        </div>
+                    </div>
+                </section>
+
                 <!-- HEATMAP CALENDAR -->
                 <div class="card heatmap-card">
                     <div class="card-header">
@@ -247,9 +245,20 @@
                             <span>More</span>
                         </div>
                     </div>
-                    <div class="heatmap-container-wrapper">
-                        <!-- Heatmap generated dynamically by JS -->
-                        <div id="heatmap-grid" class="heatmap-grid"></div>
+                    <div class="heatmap-layout">
+                        <div class="heatmap-weekdays" aria-hidden="true">
+                            <span>Mon</span>
+                            <span>Tue</span>
+                            <span>Wed</span>
+                            <span>Thu</span>
+                            <span>Fri</span>
+                            <span>Sat</span>
+                            <span>Sun</span>
+                        </div>
+                        <div class="heatmap-container-wrapper">
+                            <!-- Heatmap generated dynamically by JS -->
+                            <div id="heatmap-grid" class="heatmap-grid"></div>
+                        </div>
                     </div>
                     <div class="heatmap-footer">
                         <p>Showing the rolling 24 weeks of consistency. Hover over boxes to see details.</p>
@@ -291,35 +300,6 @@
                 </div>
             </section>
         </main>
-    </div>
-
-    <!-- MODAL: FRIENDS & PROFILES -->
-    <div id="modal-friends" class="modal-overlay">
-        <div class="modal-box modal-box-large">
-            <div class="modal-header">
-                <h2>Friends & Profiles</h2>
-                <button id="btn-close-friends-modal" class="modal-close-btn">&times;</button>
-            </div>
-            <div class="modal-body">
-                <div class="social-section">
-                    <div class="social-section-heading"><h3>Your profile</h3><p>Switch profiles on this device, or make a new one.</p></div>
-                    <div id="profile-picker" class="profile-picker"></div>
-                    <form id="form-create-profile" class="social-form">
-                        <input id="input-profile-name" type="text" maxlength="40" placeholder="Create a profile (e.g. Alex)" required>
-                        <button class="btn btn-secondary" type="submit">Create profile</button>
-                    </form>
-                </div>
-                <div class="social-section">
-                    <div class="social-section-heading"><h3>Add a friend</h3><p>Enter the exact profile name your friend created.</p></div>
-                    <form id="form-add-friend" class="social-form">
-                        <input id="input-friend-name" type="text" maxlength="40" placeholder="Friend's profile name" required>
-                        <button class="btn btn-primary" type="submit">Connect</button>
-                    </form>
-                    <p id="social-message" class="social-message" role="status"></p>
-                    <div id="friends-list" class="friends-list"></div>
-                </div>
-            </div>
-        </div>
     </div>
 
     <!-- MODAL: REASON FOR INCOMPLETE TASK -->
