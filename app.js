@@ -80,7 +80,7 @@ async function loadFromLocalStorage() {
     }
 
     try {
-        const response = await fetch("./shared-data.json");
+        const response = await fetch("/api/profiles");
         if (!response.ok) return;
         const data = await response.json();
         const profiles = Array.isArray(data.profiles) ? data.profiles : [];

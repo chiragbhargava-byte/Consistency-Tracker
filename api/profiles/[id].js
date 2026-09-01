@@ -1,7 +1,12 @@
 const { readDatabase, writeDatabase, ensureProfileShape } = require('../_lib/data');
 
 function sendJson(response, status, data) {
-  response.status(status).json(data);
+  if (typeof response.status === 'function') {
+    return response.status(status).json(data);
+  }
+  response.statusCode = status;
+  response.setHeader('Content-Type', 'application/json');
+  response.end(JSON.stringify(data));
 }
 
 module.exports = async function handler(request, response) {
